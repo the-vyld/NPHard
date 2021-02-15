@@ -2,7 +2,7 @@ from layers import *
 from metrics import *
 from layers import _LAYER_UIDS
 
-flags = tf.app.flags
+flags = tf.compat.v1.app.flags
 FLAGS = flags.FLAGS
 
 def lrelu(x):
@@ -33,7 +33,9 @@ class Model(object):
         self.pred = None
         self.output_dim = None
 
-        self.loss = 0
+        with tf.GradientTape() as t:
+            self.loss = 0
+
         self.accuracy = 0
         self.optimizer = None
         self.opt_op = None
@@ -43,7 +45,7 @@ class Model(object):
 
     def build(self):
         """ Wrapper for _build() """
-        with tf.variable_scope(self.name):
+        with tf.compat.v1.variable_scope(self.name):
             self._build()
 
         # Build sequential layer model
@@ -71,14 +73,15 @@ class Model(object):
         if self.name == 'gcn_dqn':
             self.pred = tf.argmax(self.outputs)
         # Store model variables for easy access
-        variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
+        variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
         self.vars = {var.name: var for var in variables}
 
         # Build metrics
         self._loss()
         self._accuracy()
 
-        self.opt_op = self.optimizer.minimize(self.loss)
+
+        self.opt_op = tf.GradientTape(self.loss, tf.compat.v1.trainable_variables)
 
     def predict(self):
         pass
@@ -169,7 +172,7 @@ class GCN_DEEP_DIVER(Model):
         self.output_dim = placeholders['labels'].get_shape().as_list()[1]
         self.placeholders = placeholders
 
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
+        self.optimizer = tf.optimizers.Adam(learning_rate=FLAGS.learning_rate)
 
         self.build()
 

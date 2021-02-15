@@ -11,7 +11,7 @@ import time
 import scipy.io as sio
 import numpy as np
 import scipy.sparse as sp
-import Queue
+import queue
 import multiprocessing as mp
 from multiprocessing import Manager, Value, Lock
 from copy import deepcopy
@@ -148,7 +148,7 @@ def MPSearch(pnum, lock):
     global N_bd
 
     # Settings
-    flags = tf.app.flags
+    flags = tf.compat.v1.app.flags
     FLAGS = flags.FLAGS
     flags.DEFINE_string('model', 'gcn_cheby', 'Model string.')  # 'gcn', 'gcn_cheby', 'dense'
     flags.DEFINE_float('learning_rate', 0.001, 'Initial learning rate.')
@@ -165,15 +165,16 @@ def MPSearch(pnum, lock):
 
     num_supports = 1 + FLAGS.max_degree
     model_func = GCN_DEEP_DIVER
+    tf.compat.v1.disable_eager_execution()
 
     # Define placeholders
     placeholders = {
-        'support': [tf.sparse_placeholder(tf.float32) for _ in range(num_supports)],
-        'features': tf.sparse_placeholder(tf.float32, shape=(None, N_bd)),  # featureless: #points
-        'labels': tf.placeholder(tf.float32, shape=(None, 2)),  # 0: not linked, 1:linked
-        'labels_mask': tf.placeholder(tf.int32),
-        'dropout': tf.placeholder_with_default(0., shape=()),
-        'num_features_nonzero': tf.placeholder(tf.int32)  # helper variable for sparse dropout
+        'support': [tf.compat.v1.sparse_placeholder(tf.float32) for _ in range(num_supports)],
+        'features': tf.compat.v1.sparse_placeholder(tf.float32, shape=(None, N_bd)),  # featureless: #points
+        'labels': tf.compat.v1.placeholder(tf.float32, shape=(None, 2)),  # 0: not linked, 1:linked
+        'labels_mask': tf.compat.v1.placeholder(tf.int32),
+        'dropout': tf.compat.v1.placeholder_with_default(0., shape=()),
+        'num_features_nonzero': tf.compat.v1.placeholder(tf.int32)  # helper variable for sparse dropout
     }
 
     # Create model
@@ -185,16 +186,16 @@ def MPSearch(pnum, lock):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(0)
 
     # Initialize session
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
+    sess = tf.compat.v1.Session(config=config)
     # sess = tf.Session()
 
     # Init variables
-    saver = tf.train.Saver(max_to_keep=1000)
-    sess.run(tf.global_variables_initializer())
+    saver = tf.compat.v1.train.Saver(max_to_keep=1000)
+    sess.run(tf.compat.v1.global_variables_initializer())
 
-    ckpt = tf.train.get_checkpoint_state("./model")
+    ckpt = tf.compat.v1.train.get_checkpoint_state("./model")
     print('%02d loaded' % pnum + ckpt.model_checkpoint_path)
     saver.restore(sess, ckpt.model_checkpoint_path)
 
